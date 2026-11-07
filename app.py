@@ -397,3 +397,83 @@ elif st.session_state.page == "game":
             st.session_state.page = "welcome"
             st.session_state.last_result = None
             st.rerun()
+import streamlit as st
+
+st.set_page_config(
+    page_title="미니 게임 월드",
+    page_icon="🎮"
+)
+
+st.markdown("""
+<style>
+.stApp {
+    background-color: black;
+    color: white;
+}
+.stButton > button {
+    background-color: white !important;
+    color: black !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+if st.session_state.page == "home":
+    st.title("WELCOME 🐉")
+    if st.button("들어가기"):
+        st.session_state.page = "welcome"
+        st.rerun()
+
+elif st.session_state.page == "welcome":
+    st.title("환영합니다! 🎉")
+    st.balloons()
+
+    if st.button("✊ 가위바위보"):
+        st.session_state.page = "rps"
+        st.rerun()
+
+    if st.button("🧱 테트리스"):
+        st.session_state.page = "tetris"
+        st.rerun()
+
+elif st.session_state.page == "rps":
+    st.title("가위바위보")
+
+    choice = st.radio(
+        "선택하세요",
+        ["가위", "바위", "보"],
+        horizontal=True
+    )
+
+    if st.button("대결하기"):
+        computer = __import__("random").choice(
+            ["가위", "바위", "보"]
+        )
+
+        st.write("내 선택:", choice)
+        st.write("컴퓨터 선택:", computer)
+
+        if choice == computer:
+            st.info("무승부!")
+        elif (
+            (choice == "가위" and computer == "보")
+            or (choice == "바위" and computer == "가위")
+            or (choice == "보" and computer == "바위")
+        ):
+            st.success("승리!")
+        else:
+            st.error("패배!")
+
+    if st.button("홈으로"):
+        st.session_state.page = "welcome"
+        st.rerun()
+
+elif st.session_state.page == "tetris":
+    st.title("테트리스")
+    st.info("테트리스 게임 화면")
+
+    if st.button("홈으로"):
+        st.session_state.page = "welcome"
+        st.rerun()
