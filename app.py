@@ -1,479 +1,535 @@
 
 import streamlit as st
-import streamlit.components.v1 as components
+import datetime
 import random
+import uuid
+import io
+import wave
+import math
+import struct
+
+from streamlit_autorefresh import st_autorefresh
+
+
+# ==========================================
+# 1. 기본 설정
+# ==========================================
 
 st.set_page_config(
-    page_title="가위바위보 게임",
-    page_icon="🐉",
-    layout="wide"
+    page_title="수학 타이머",
+    page_icon="⏰",
+    layout="centered"
 )
 
-# -------------------------
-# 디자인
-# -------------------------
+# ==========================================
+# 2. 화면 디자인
+# ==========================================
 
-st.markdown("""
-<style>
-.stApp {
-    background-color: #000000 !important;
-    color: white !important;
-}
+def apply_design(dark=False):
 
-h1, h2, h3, p, label {
-    color: white !important;
-}
+    if dark:
+        background = "#111111"
+        foreground = "#FFFFFF"
+        input_background = "#292929"
+    else:
+        background = "#FFFFFF"
+        foreground = "#111111"
+        input_background = "#F5F5F5"
 
-.stButton > button,
-.stButton > button p,
-.stButton > button span,
-.stButton > button div {
-    background-color: white !important;
-    color: black !important;
-    -webkit-text-fill-color: black !important;
-    border: 2px solid white !important;
-    border-radius: 12px !important;
-    font-size: 20px !important;
-    font-weight: bold !important;
-    padding: 10px !important;
-}
+    st.markdown(f"""
+    <style>
+    .stApp {{
+        background-color: {background};
+        color: {foreground};
+    }}
 
-.stButton > button:hover {
-    background-color: #dddddd !important;
-}
-</style>
-""", unsafe_allow_html=True)
+    [data-testid="stHeader"] {{
+        background-color: {background};
+    }}
 
-# -------------------------
-# 화면 상태
-# -------------------------
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMarkdownContainer"] h3,
+    label {{
+        color: {foreground} !important;
+    }}
+
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div {{
+        background-color: {input_background};
+        color: {foreground};
+    }}
+
+    input {{
+        accent-color: #FF8C00 !important;
+    }}
+
+    div.stButton > button {{
+        border-radius: 12px;
+        min-height: 45px;
+        font-weight: 600;
+    }}
+
+    div[data-testid="stToggle"] {{
+        accent-color: #FF8C00;
+    }}
+
+    </style>
+    """, unsafe_allow_html=True)
+
+
+# ==========================================
+# 3. 세션 상태
+# ==========================================
 
 if "page" not in st.session_state:
-    st.session_state.page = "home"
+    st.session_state.page = "list"
 
-if "wins" not in st.session_state:
-    st.session_state.wins = 0
+if "alarms" not in st.session_state:
+    st.session_state.alarms = []
 
-if "losses" not in st.session_state:
-    st.session_state.losses = 0
+if "active_alarm" not in st.session_state:
+    st.session_state.active_alarm = None
 
-if "draws" not in st.session_state:
-    st.session_state.draws = 0
-
-if "last_result" not in st.session_state:
-    st.session_state.last_result = None
+if "notice" not in st.session_state:
+    st.session_state.notice = ""
 
 
-# =================================================
-# 1. 처음 화면
-# =================================================
+# ==========================================
+# 4. 수학 문제 생성
+# ==========================================
 
-if st.session_state.page == "home":
+def generate_problem(level):
 
-    st.markdown("""
-    <h1 style="text-align:center; margin-top:150px;">
-        WELCOME 🐉
-    </h1>
-    <p style="text-align:center; font-size:20px;">
-        환영합니다! 입장해 주세요.
-    </p>
-    """, unsafe_allow_html=True)
+    if level == "하":
 
-    col1, col2, col3 = st.columns([1, 1, 1])
+        a = random.randint(10, 99)
+        b = random.randint(1, 99)
 
-    with col2:
-        if st.button("들어가기", use_container_width=True):
-            st.session_state.page = "welcome"
-            st.rerun()
+        if random.choice([True, False]):
+            return f"{a} + {b}", a + b
 
+        return f"{a} - {b}", a - b
 
-# =================================================
-# 2. 환영 화면
-# =================================================
+    elif level == "중":
 
-elif st.session_state.page == "welcome":
+        a = random.randint(2, 20)
+        b = random.randint(2, 15)
 
-    st.markdown("""
-    <h1 style="
-        text-align:center;
-        margin-top:50px;
-        font-size:48px;">
-        환영합니다! 🎉
-    </h1>
-    """, unsafe_allow_html=True)
+        if random.choice([True, False]):
+            return f"{a} × {b}", a * b
 
-    # 폭죽 효과
-    st.balloons()
+        return f"{a * b} ÷ {a}", b
 
-    # 용과 독수리 애니메이션
-    components.html("""
-    <div class="scene">
-        <div class="dragon">🐉</div>
-        <div class="fire">🔥🔥🔥</div>
-        <div class="eagle">🦅</div>
-    </div>
+    else:
 
-    <style>
-    body {
-        background: black;
-        margin: 0;
-        overflow: hidden;
-    }
+        a = random.randint(5, 20)
+        b = random.randint(5, 15)
+        c = random.randint(1, a * b - 1)
 
-    .scene {
-        position: relative;
-        width: 100%;
-        height: 350px;
-        background: black;
-        overflow: hidden;
-    }
+        if random.choice([True, False]):
+            return f"({a} × {b}) + {c}", a * b + c
 
-    .dragon {
-        position: absolute;
-        font-size: 110px;
-        top: 40px;
-        left: -180px;
-        animation: dragonMove 5s ease-in-out forwards;
-    }
-
-    @keyframes dragonMove {
-        0% { left: -180px; }
-        30% { left: 35%; }
-        65% { left: 35%; }
-        100% { left: 120%; }
-    }
-
-    .fire {
-        position: absolute;
-        font-size: 45px;
-        top: 110px;
-        left: 40%;
-        opacity: 0;
-        animation: fireBreath 5s ease-in-out forwards;
-    }
-
-    @keyframes fireBreath {
-        0%, 30% {
-            opacity: 0;
-            transform: scale(0.2);
-        }
-        40%, 65% {
-            opacity: 1;
-            transform: scale(1.8);
-        }
-        80%, 100% {
-            opacity: 0;
-        }
-    }
-
-    .eagle {
-        position: absolute;
-        font-size: 85px;
-        top: 200px;
-        left: -130px;
-        animation: eagleFly 6s linear 1s forwards;
-    }
-
-    @keyframes eagleFly {
-        0% {
-            left: -130px;
-            top: 220px;
-        }
-        50% {
-            top: 100px;
-        }
-        100% {
-            left: 120%;
-            top: 160px;
-        }
-    }
-    </style>
-    """, height=370)
-
-    st.markdown("""
-    <h2 style="text-align:center; color:gold;">
-        🐉 용과 🦅 독수리가 환영합니다!
-    </h2>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <p style="text-align:center; font-size:18px;">
-        준비되셨나요? 가위바위보 게임을 시작해 보세요!
-    </p>
-    """, unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns([1, 1, 1])
-
-    with col2:
-        if st.button("✊ 가위바위보", use_container_width=True):
-            st.session_state.page = "game"
-            st.rerun()
+        return f"({a} × {b}) - {c}", a * b - c
 
 
-# =================================================
-# 3. 가위바위보 게임 화면
-# =================================================
+# ==========================================
+# 5. 알람 소리 생성
+# ==========================================
 
-elif st.session_state.page == "game":
+@st.cache_data
+def make_alarm_sound():
 
-    st.markdown("""
-    <h1 style="text-align:center; margin-top:40px;">
-        ✊ 가위바위보 게임 ✌️
-    </h1>
-    <p style="text-align:center; font-size:18px;">
-        가위, 바위, 보 중 하나를 선택하세요!
-    </p>
-    """, unsafe_allow_html=True)
+    sample_rate = 44100
+    duration = 0.6
+    frequency = 880
 
-    st.markdown("---")
+    buffer = io.BytesIO()
 
-    st.markdown(
-        "<h3 style='text-align:center;'>나의 선택</h3>",
-        unsafe_allow_html=True
-    )
+    with wave.open(buffer, "wb") as wav:
 
-    choices = {
-        "가위": "✌️",
-        "바위": "✊",
-        "보": "✋"
-    }
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
 
-    col1, col2, col3 = st.columns(3)
+        frames = []
 
-    user_choice = None
+        for i in range(int(sample_rate * duration)):
 
-    with col1:
-        if st.button("✌️ 가위", use_container_width=True):
-            user_choice = "가위"
+            value = int(
+                12000 * math.sin(
+                    2 * math.pi * frequency * i / sample_rate
+                )
+            )
 
-    with col2:
-        if st.button("✊ 바위", use_container_width=True):
-            user_choice = "바위"
+            frames.append(struct.pack("<h", value))
 
-    with col3:
-        if st.button("✋ 보", use_container_width=True):
-            user_choice = "보"
+        wav.writeframes(b"".join(frames))
 
-    # 게임 진행
-    if user_choice is not None:
+    return buffer.getvalue()
 
-        computer_choice = random.choice(
-            ["가위", "바위", "보"]
+
+# ==========================================
+# 6. 현재 시간 및 알람 확인
+# ==========================================
+
+st_autorefresh(
+    interval=1000,
+    key="clock_refresh"
+)
+
+now = datetime.datetime.now()
+
+# 울려야 하는 알람 확인
+if st.session_state.active_alarm is None:
+
+    due_alarms = [
+        alarm for alarm in st.session_state.alarms
+        if alarm["target"] <= now
+    ]
+
+    if due_alarms:
+
+        alarm = min(
+            due_alarms,
+            key=lambda x: x["target"]
         )
 
-        if user_choice == computer_choice:
-            result = "무승부"
-            st.session_state.draws += 1
+        st.session_state.active_alarm = alarm["id"]
 
-        elif (
-            (user_choice == "가위" and computer_choice == "보")
-            or
-            (user_choice == "바위" and computer_choice == "가위")
-            or
-            (user_choice == "보" and computer_choice == "바위")
+        if alarm["math"]:
+            question, answer = generate_problem(
+                alarm["difficulty"]
+            )
+
+            alarm["question"] = question
+            alarm["answer"] = answer
+
+        st.session_state.page = "ring"
+
+
+# ==========================================
+# 7. 알람 목록 화면
+# ==========================================
+
+def alarm_list_screen():
+
+    apply_design(False)
+
+    left, right = st.columns([5, 1])
+
+    with left:
+        st.markdown("# 알람")
+
+    with right:
+        if st.button("＋", use_container_width=True):
+            st.session_state.page = "add"
+            st.rerun()
+
+    st.divider()
+
+    if st.session_state.notice:
+        st.success(st.session_state.notice)
+        st.session_state.notice = ""
+
+    if len(st.session_state.alarms) == 0:
+
+        st.markdown(
+            "<h3 style='text-align:center; color:#999999;'>"
+            "설정된 알람이 없습니다."
+            "</h3>",
+            unsafe_allow_html=True
+        )
+
+    else:
+
+        for alarm in sorted(
+            st.session_state.alarms,
+            key=lambda x: x["target"]
         ):
-            result = "승리!"
-            st.session_state.wins += 1
 
-        else:
-            result = "패배!"
-            st.session_state.losses += 1
+            with st.container(border=True):
 
-        st.session_state.last_result = {
-            "user": user_choice,
-            "computer": computer_choice,
-            "result": result
-        }
+                hour = alarm["hour"]
+                minute = alarm["minute"]
+                period = alarm["period"]
 
-        st.rerun()
+                st.markdown(
+                    f"<h1 style='font-size:45px; margin:0;'>"
+                    f"{period} {hour:02d}:{minute:02d}"
+                    f"</h1>",
+                    unsafe_allow_html=True
+                )
 
-    # 결과 표시
-    if st.session_state.last_result:
+                if alarm["math"]:
+                    st.caption(
+                        f"수학 문제 사용 · 난이도 {alarm['difficulty']}"
+                    )
+                else:
+                    st.caption("수학 문제 사용 안 함")
 
-        data = st.session_state.last_result
 
-        st.markdown("---")
+# ==========================================
+# 8. 알람 추가 화면
+# ==========================================
 
-        st.markdown(
-            "<h2 style='text-align:center;'>🎮 게임 결과</h2>",
-            unsafe_allow_html=True
-        )
+def alarm_add_screen():
 
-        col1, col2 = st.columns(2)
+    apply_design(True)
 
-        with col1:
-            st.markdown(
-                "<p style='text-align:center;'>나의 선택</p>",
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                f"<h1 style='text-align:center;'>"
-                f"{choices[data['user']]}</h1>",
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                f"<h3 style='text-align:center;'>"
-                f"{data['user']}</h3>",
-                unsafe_allow_html=True
-            )
+    st.markdown("# 알람 추가")
 
-        with col2:
-            st.markdown(
-                "<p style='text-align:center;'>컴퓨터의 선택</p>",
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                f"<h1 style='text-align:center;'>"
-                f"{choices[data['computer']]}</h1>",
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                f"<h3 style='text-align:center;'>"
-                f"{data['computer']}</h3>",
-                unsafe_allow_html=True
-            )
+    st.divider()
 
-        if data["result"] == "승리!":
-            st.success("🎉 축하합니다! 당신이 이겼습니다!")
-            st.balloons()
+    st.markdown("### 시간 설정")
 
-        elif data["result"] == "패배!":
-            st.error("😢 컴퓨터가 이겼습니다!")
-
-        else:
-            st.info("🤝 비겼습니다!")
-
-        st.markdown(
-            f"<h1 style='text-align:center;'>{data['result']}</h1>",
-            unsafe_allow_html=True
-        )
-
-    # 누적 전적
-    st.markdown("---")
-
-    st.markdown(
-        "<h2 style='text-align:center;'>📊 나의 누적 전적</h2>",
-        unsafe_allow_html=True
+    period = st.radio(
+        "오전 / 오후",
+        ["오전", "오후"],
+        horizontal=True,
+        key="period_select"
     )
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric("🏆 승리", st.session_state.wins)
-
-    with col2:
-        st.metric("💀 패배", st.session_state.losses)
-
-    with col3:
-        st.metric("🤝 무승부", st.session_state.draws)
-
-    total = (
-        st.session_state.wins
-        + st.session_state.losses
-        + st.session_state.draws
-    )
-
-    if total > 0:
-        win_rate = st.session_state.wins / total * 100
-        st.markdown(
-            f"<h3 style='text-align:center;'>승률: {win_rate:.1f}%</h3>",
-            unsafe_allow_html=True
-        )
-
-    st.markdown("---")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("🔄 전적 초기화", use_container_width=True):
-            st.session_state.wins = 0
-            st.session_state.losses = 0
-            st.session_state.draws = 0
-            st.session_state.last_result = None
-            st.rerun()
-
-    with col2:
-        if st.button("🏠 환영 화면으로", use_container_width=True):
-            st.session_state.page = "welcome"
-            st.session_state.last_result = None
-            st.rerun()
-import streamlit as st
-
-st.set_page_config(
-    page_title="미니 게임 월드",
-    page_icon="🎮"
-)
-
-st.markdown("""
-<style>
-.stApp {
-    background-color: black;
-    color: white;
-}
-.stButton > button {
-    background-color: white !important;
-    color: black !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-if "page" not in st.session_state:
-    st.session_state.page = "home"
-
-if st.session_state.page == "home":
-    st.title("WELCOME 🐉")
-    if st.button("들어가기"):
-        st.session_state.page = "welcome"
-        st.rerun()
-
-elif st.session_state.page == "welcome":
-    st.title("환영합니다! 🎉")
-    st.balloons()
-
-    if st.button("✊ 가위바위보"):
-        st.session_state.page = "rps"
-        st.rerun()
-
-    if st.button("🧱 테트리스"):
-        st.session_state.page = "tetris"
-        st.rerun()
-
-elif st.session_state.page == "rps":
-    st.title("가위바위보")
-
-    choice = st.radio(
-        "선택하세요",
-        ["가위", "바위", "보"],
-        horizontal=True
-    )
-
-    if st.button("대결하기"):
-        computer = __import__("random").choice(
-            ["가위", "바위", "보"]
+        hour = st.selectbox(
+            "시",
+            list(range(1, 13)),
+            index=6
         )
 
-        st.write("내 선택:", choice)
-        st.write("컴퓨터 선택:", computer)
+    with col2:
+        minute = st.selectbox(
+            "분",
+            list(range(0, 60)),
+            index=0,
+            format_func=lambda x: f"{x:02d}"
+        )
 
-        if choice == computer:
-            st.info("무승부!")
-        elif (
-            (choice == "가위" and computer == "보")
-            or (choice == "바위" and computer == "가위")
-            or (choice == "보" and computer == "바위")
+    st.divider()
+
+    st.markdown("### 수학 문제")
+
+    math_enabled = st.toggle(
+        "수학 문제 사용",
+        value=True
+    )
+
+    difficulty = None
+
+    if math_enabled:
+
+        st.markdown("### 난이도 선택")
+
+        difficulty = st.radio(
+            "난이도",
+            ["상", "중", "하"],
+            horizontal=True,
+            index=1,
+            label_visibility="collapsed"
+        )
+
+    st.divider()
+
+    # 화면 아래 저장 버튼
+    if st.button(
+        "저장",
+        use_container_width=True,
+        type="primary"
+    ):
+
+        hour_24 = hour % 12
+
+        if period == "오후":
+            hour_24 += 12
+
+        current = datetime.datetime.now()
+
+        target = datetime.datetime.combine(
+            current.date(),
+            datetime.time(hour_24, minute)
+        )
+
+        # 이미 지난 시간이면 다음 날로 설정
+        if target <= current:
+            target += datetime.timedelta(days=1)
+
+        new_alarm = {
+            "id": str(uuid.uuid4()),
+            "period": period,
+            "hour": hour,
+            "minute": minute,
+            "math": math_enabled,
+            "difficulty": difficulty,
+            "target": target,
+            "question": None,
+            "answer": None
+        }
+
+        st.session_state.alarms.append(new_alarm)
+
+        st.session_state.page = "list"
+        st.rerun()
+
+    if st.button(
+        "뒤로 가기",
+        use_container_width=True
+    ):
+        st.session_state.page = "list"
+        st.rerun()
+
+
+# ==========================================
+# 9. 알람 실행 화면
+# ==========================================
+
+def alarm_ring_screen():
+
+    apply_design(False)
+
+    alarm_id = st.session_state.active_alarm
+
+    alarm = next(
+        (
+            a for a in st.session_state.alarms
+            if a["id"] == alarm_id
+        ),
+        None
+    )
+
+    if alarm is None:
+        st.session_state.active_alarm = None
+        st.session_state.page = "list"
+        st.rerun()
+        return
+
+    st.markdown(
+        f"""
+        <h1 style="
+            text-align:center;
+            font-size:55px;
+            margin-top:40px;
+            color:#111111;
+        ">
+            {datetime.datetime.now().strftime("%H:%M:%S")}
+        </h1>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<p style='text-align:center;color:#777777;'>"
+        "알람이 울리고 있습니다."
+        "</p>",
+        unsafe_allow_html=True
+    )
+
+    # 알람 소리 반복 재생
+    st.audio(
+        make_alarm_sound(),
+        format="audio/wav",
+        autoplay=True,
+        loop=True
+    )
+
+    st.divider()
+
+    if alarm["math"]:
+
+        st.markdown(
+            """
+            <h2 style="text-align:center;">
+                수학 문제를 풀어주세요
+            </h2>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            f"""
+            <h1 style="
+                text-align:center;
+                font-size:48px;
+                margin:45px 0;
+                color:#111111;
+            ">
+                {alarm["question"]} = ?
+            </h1>
+            """,
+            unsafe_allow_html=True
+        )
+
+        with st.form("answer_form"):
+
+            answer = st.number_input(
+                "답 입력",
+                step=1,
+                value=0
+            )
+
+            submitted = st.form_submit_button(
+                "답 입력 완료",
+                use_container_width=True
+            )
+
+            if submitted:
+
+                if int(answer) == alarm["answer"]:
+
+                    st.session_state.alarms = [
+                        a for a in st.session_state.alarms
+                        if a["id"] != alarm_id
+                    ]
+
+                    st.session_state.active_alarm = None
+                    st.session_state.page = "list"
+                    st.session_state.notice = "알람이 해제되었습니다!"
+
+                    st.rerun()
+
+                else:
+                    st.error("오답입니다. 다시 입력하세요.")
+
+    else:
+
+        st.markdown(
+            "<h2 style='text-align:center;'>"
+            "알람을 끄려면 버튼을 눌러주세요."
+            "</h2>",
+            unsafe_allow_html=True
+        )
+
+        if st.button(
+            "알람 끄기",
+            use_container_width=True
         ):
-            st.success("승리!")
-        else:
-            st.error("패배!")
 
-    if st.button("홈으로"):
-        st.session_state.page = "welcome"
-        st.rerun()
+            st.session_state.alarms = [
+                a for a in st.session_state.alarms
+                if a["id"] != alarm_id
+            ]
 
-elif st.session_state.page == "tetris":
-    st.title("테트리스")
-    st.info("테트리스 게임 화면")
+            st.session_state.active_alarm = None
+            st.session_state.page = "list"
+            st.session_state.notice = "알람이 해제되었습니다!"
 
-    if st.button("홈으로"):
-        st.session_state.page = "welcome"
-        st.rerun()
+            st.rerun()
+
+
+# ==========================================
+# 10. 화면 이동
+# ==========================================
+
+if st.session_state.active_alarm is not None:
+    st.session_state.page = "ring"
+
+if st.session_state.page == "list":
+    alarm_list_screen()
+
+elif st.session_state.page == "add":
+    alarm_add_screen()
+
+elif st.session_state.page == "ring":
+    alarm_ring_screen()
