@@ -20,6 +20,18 @@ st.set_page_config(
 
 KST = datetime.timezone(datetime.timedelta(hours=9))
 
+SCOPES = [
+    "공통수학1",
+    "공통수학2",
+    "대수",
+    "미적분Ⅰ",
+    "확률과 통계",
+    "기하",
+    "미적분Ⅱ"
+]
+
+LEVELS = ["하", "중", "상"]
+
 
 # -------------------------
 # 세션 데이터 초기화
@@ -46,6 +58,7 @@ if "problem" not in st.session_state:
 # -------------------------
 
 def apply_design(dark=False):
+
     if dark:
         background = "#000000"
         foreground = "#FFFFFF"
@@ -60,14 +73,24 @@ def apply_design(dark=False):
         color: {foreground};
     }}
 
-    h1, h2, h3, p, label {{
+    h1, h2, h3, h4, p, label {{
         color: {foreground} !important;
     }}
 
-    div.stButton > button {{
+    /* 모든 버튼의 글자색 검은색 */
+    div.stButton > button,
+    div.stButton > button p,
+    div.stFormSubmitButton > button,
+    div.stFormSubmitButton > button p,
+    button[kind] {{
+        color: #000000 !important;
+        font-weight: bold !important;
+    }}
+
+    div.stButton > button,
+    div.stFormSubmitButton > button {{
         border-radius: 12px;
-        height: 48px;
-        font-weight: bold;
+        min-height: 48px;
     }}
 
     div[data-testid="stNumberInput"] input {{
@@ -79,149 +102,271 @@ def apply_design(dark=False):
 
 
 # -------------------------
-# 공통수학2 문제 생성
+# 난이도별 범위 설정
 # -------------------------
 
-def generate_problem():
+def get_numbers(level):
 
-    problem_type = random.choice([
-        "distance",
-        "midpoint",
-        "slope",
-        "circle",
-        "set_union",
-        "set_difference",
-        "function",
-        "composition"
-    ])
+    if level == "하":
+        return 2, 5
 
-    if problem_type == "distance":
+    elif level == "중":
+        return 5, 10
 
-        pairs = [(3, 4), (5, 12), (8, 15), (7, 24)]
-        dx, dy = random.choice(pairs)
+    else:
+        return 10, 20
 
-        x1 = random.randint(-5, 5)
-        y1 = random.randint(-5, 5)
 
-        x2 = x1 + dx
-        y2 = y1 + dy
+# -------------------------
+# 수학 문제 생성
+# -------------------------
 
-        answer = int(math.sqrt(dx**2 + dy**2))
+def generate_problem(scope, level):
 
-        question = (
-            f"두 점 A({x1}, {y1}), B({x2}, {y2}) 사이의 "
-            f"거리를 구하시오."
-        )
+    low, high = get_numbers(level)
 
-    elif problem_type == "midpoint":
+    # 공통수학1
+    if scope == "공통수학1":
 
-        x1 = random.randint(-8, 8)
-        y1 = random.randint(-8, 8)
-        x2 = random.randint(-8, 8)
-        y2 = random.randint(-8, 8)
+        a = random.randint(1, high)
+        b = random.randint(-high, high)
+        c = random.randint(-high, high)
+        x = random.randint(-low, low)
 
-        answer = (x1 + x2) // 2
+        answer = a * x**2 + b * x + c
 
         question = (
-            f"두 점 A({x1}, {y1}), B({x2}, {y2})의 "
-            f"중점의 x좌표를 구하시오."
-        )
-
-    elif problem_type == "slope":
-
-        x1 = random.randint(-5, 5)
-        y1 = random.randint(-5, 5)
-
-        dx = random.choice([-4, -3, -2, 2, 3, 4])
-        multiplier = random.choice([-3, -2, -1, 1, 2, 3])
-
-        x2 = x1 + dx
-        y2 = y1 + multiplier * dx
-
-        answer = multiplier
-
-        question = (
-            f"두 점 A({x1}, {y1}), B({x2}, {y2})를 "
-            f"지나는 직선의 기울기를 구하시오."
-        )
-
-    elif problem_type == "circle":
-
-        radius = random.randint(2, 12)
-        a = random.randint(-5, 5)
-        b = random.randint(-5, 5)
-
-        question = (
-            f"원의 방정식이 "
-            f"(x - ({a}))² + (y - ({b}))² = {radius**2}일 때, "
-            f"원의 반지름을 구하시오."
-        )
-
-        answer = radius
-
-    elif problem_type == "set_union":
-
-        a = random.randint(5, 15)
-        b = random.randint(5, 15)
-        common = random.randint(1, min(a, b) - 1)
-
-        answer = a + b - common
-
-        question = (
-            f"두 집합 A, B에 대하여 n(A)={a}, "
-            f"n(B)={b}, n(A∩B)={common}이다. "
-            f"n(A∪B)를 구하시오."
-        )
-
-    elif problem_type == "set_difference":
-
-        a = random.randint(5, 15)
-        common = random.randint(1, a - 1)
-
-        answer = a - common
-
-        question = (
-            f"두 집합 A, B에 대하여 n(A)={a}, "
-            f"n(A∩B)={common}이다. "
-            f"n(A-B)를 구하시오."
-        )
-
-    elif problem_type == "function":
-
-        a = random.choice([-5, -4, -3, -2, 2, 3, 4, 5])
-        b = random.randint(-10, 10)
-        x = random.randint(-5, 5)
-
-        answer = a * x + b
-
-        question = (
-            f"함수 f(x)={a}x+({b})에 대하여 "
+            f"다항식 f(x)={a}x²+({b})x+({c})에 대하여 "
             f"f({x})의 값을 구하시오."
         )
 
-    else:
+    # 공통수학2
+    elif scope == "공통수학2":
 
-        a = random.randint(1, 5)
-        b = random.randint(-5, 5)
-        c = random.randint(1, 5)
-        d = random.randint(-5, 5)
-        x = random.randint(-3, 3)
+        kind = random.choice(["distance", "circle", "set"])
 
-        answer = a * (c * x + d) + b
+        if kind == "distance":
+
+            dx = random.choice([3, 4, 5, 6, 8])
+            dy = random.choice([4, 5, 6, 8, 15])
+
+            if level == "하":
+                dx, dy = 3, 4
+            elif level == "중":
+                dx, dy = 5, 12
+            else:
+                dx, dy = 8, 15
+
+            x1 = random.randint(-5, 5)
+            y1 = random.randint(-5, 5)
+
+            x2 = x1 + dx
+            y2 = y1 + dy
+
+            answer = int(math.sqrt(dx**2 + dy**2))
+
+            question = (
+                f"두 점 A({x1}, {y1}), B({x2}, {y2}) 사이의 "
+                f"거리를 구하시오."
+            )
+
+        elif kind == "circle":
+
+            radius = random.randint(low, high)
+            a = random.randint(-5, 5)
+            b = random.randint(-5, 5)
+
+            answer = radius
+
+            question = (
+                f"원의 방정식이 "
+                f"(x-({a}))²+(y-({b}))²={radius**2}일 때, "
+                f"반지름을 구하시오."
+            )
+
+        else:
+
+            a = random.randint(high, high + 10)
+            b = random.randint(high, high + 10)
+            common = random.randint(1, min(a, b) - 1)
+
+            answer = a + b - common
+
+            question = (
+                f"n(A)={a}, n(B)={b}, n(A∩B)={common}일 때, "
+                f"n(A∪B)를 구하시오."
+            )
+
+    # 대수
+    elif scope == "대수":
+
+        if level == "하":
+            base = random.choice([2, 3])
+            exponent = random.randint(2, 4)
+
+        elif level == "중":
+            base = random.choice([2, 3, 5])
+            exponent = random.randint(3, 6)
+
+        else:
+            base = random.choice([2, 3, 5])
+            exponent = random.randint(5, 8)
+
+        kind = random.choice(["exponential", "logarithm"])
+
+        if kind == "exponential":
+
+            answer = base ** exponent
+
+            question = (
+                f"{base}^{exponent}의 값을 구하시오."
+            )
+
+        else:
+
+            answer = exponent
+
+            question = (
+                f"log_{base}({base**exponent})의 값을 구하시오."
+            )
+
+    # 미적분Ⅰ
+    elif scope == "미적분Ⅰ":
+
+        a = random.randint(1, high)
+        b = random.randint(-high, high)
+        c = random.randint(-high, high)
+        x = random.randint(-low, low)
+
+        answer = 2 * a * x + b
 
         question = (
-            f"f(x)={a}x+({b}), g(x)={c}x+({d})일 때, "
-            f"(f∘g)({x})의 값을 구하시오."
+            f"함수 f(x)={a}x²+({b})x+({c})에 대하여 "
+            f"f'({x})의 값을 구하시오."
         )
+
+        if level == "상":
+
+            a = random.randint(1, 5)
+            b = random.randint(-10, 10)
+            c = random.randint(-10, 10)
+            x = random.randint(-5, 5)
+
+            answer = 3 * a * x**2 + 2 * b * x + c
+
+            question = (
+                f"함수 f(x)={a}x³+({b})x²+({c})x에 대하여 "
+                f"f'({x})의 값을 구하시오."
+            )
+
+    # 확률과 통계
+    elif scope == "확률과 통계":
+
+        if level == "하":
+
+            n = random.randint(4, 7)
+            r = 2
+
+        elif level == "중":
+
+            n = random.randint(7, 10)
+            r = random.randint(2, 4)
+
+        else:
+
+            n = random.randint(10, 15)
+            r = random.randint(3, 6)
+
+        answer = math.comb(n, r)
+
+        question = (
+            f"서로 다른 {n}개 중에서 {r}개를 선택하는 "
+            f"경우의 수를 구하시오."
+        )
+
+    # 기하
+    elif scope == "기하":
+
+        if level == "하":
+            x1, y1 = 1, 2
+            x2, y2 = 3, 4
+
+        elif level == "중":
+            x1 = random.randint(2, 8)
+            y1 = random.randint(2, 8)
+            x2 = random.randint(2, 8)
+            y2 = random.randint(2, 8)
+
+        else:
+            x1 = random.randint(-10, 10)
+            y1 = random.randint(-10, 10)
+            x2 = random.randint(-10, 10)
+            y2 = random.randint(-10, 10)
+
+        answer = x1 * x2 + y1 * y2
+
+        question = (
+            f"두 벡터 a=({x1}, {y1}), b=({x2}, {y2})에 대하여 "
+            f"a·b의 값을 구하시오."
+        )
+
+    # 미적분Ⅱ
+    elif scope == "미적분Ⅱ":
+
+        if level == "하":
+
+            n = random.randint(2, 4)
+            x = 1
+            a = random.randint(1, 5)
+
+            answer = a * n
+
+            question = (
+                f"함수 f(x)={a}x^{n}에 대하여 "
+                f"f'(1)의 값을 구하시오."
+            )
+
+        elif level == "중":
+
+            n = random.randint(3, 5)
+            a = random.randint(1, 5)
+            x = random.randint(1, 3)
+
+            answer = a * n * x**(n - 1)
+
+            question = (
+                f"함수 f(x)={a}x^{n}에 대하여 "
+                f"f'({x})의 값을 구하시오."
+            )
+
+        else:
+
+            a = random.randint(1, 4)
+            b = random.randint(1, 4)
+            x = random.randint(1, 3)
+
+            answer = 3 * a * x**2 + 2 * b * x
+
+            question = (
+                f"함수 f(x)={a}x³+{b}x²에 대하여 "
+                f"f'({x})의 값을 구하시오."
+            )
+
+    else:
+
+        question = "문제를 생성할 수 없습니다."
+        answer = 0
 
     return {
         "question": question,
-        "answer": int(answer)
+        "answer": int(answer),
+        "scope": scope,
+        "level": level
     }
 
 
 # -------------------------
-# 알람 소리 생성
+# 알람 소리
 # -------------------------
 
 @st.cache_data
@@ -259,6 +404,29 @@ def make_alarm_sound():
 
 
 # -------------------------
+# 알람 시간 변환
+# -------------------------
+
+def normalize_target(target):
+
+    if isinstance(target, str):
+        try:
+            target = datetime.datetime.fromisoformat(target)
+        except ValueError:
+            return None
+
+    if not isinstance(target, datetime.datetime):
+        return None
+
+    if target.tzinfo is None:
+        target = target.replace(tzinfo=KST)
+    else:
+        target = target.astimezone(KST)
+
+    return target
+
+
+# -------------------------
 # 알람 시간 확인
 # -------------------------
 
@@ -272,25 +440,29 @@ def alarm_checker():
 
     for alarm in st.session_state.alarms:
 
-        target = alarm["target"]
+        target = normalize_target(alarm.get("target"))
 
-        # 시간대 정보가 없는 경우 한국 시간으로 변환
-        if target.tzinfo is None:
-            target = target.replace(tzinfo=KST)
-        else:
-            target = target.astimezone(KST)
+        if target is None:
+            continue
 
-        # 변환한 시간 저장
         alarm["target"] = target
 
-        # 알람 시간 도달
         if target <= now:
 
             st.session_state.active_alarm = alarm
 
-            if alarm["math"]:
-                st.session_state.problem = generate_problem()
+            if alarm.get("math", False):
+
+                scope = alarm.get("scope", "공통수학2")
+                level = alarm.get("level", "중")
+
+                st.session_state.problem = generate_problem(
+                    scope,
+                    level
+                )
+
             else:
+
                 st.session_state.problem = None
 
             st.rerun()
@@ -298,7 +470,7 @@ def alarm_checker():
 
 
 # -------------------------
-# 알람 목록 화면
+# 알람 목록
 # -------------------------
 
 def list_screen():
@@ -331,9 +503,15 @@ def list_screen():
 
             st.subheader(alarm["display"])
 
-            if alarm["math"]:
-                st.caption("공통수학2 문제 알람")
+            if alarm.get("math", False):
+
+                st.caption(
+                    f"{alarm.get('scope', '공통수학2')} "
+                    f"· 난이도 {alarm.get('level', '중')}"
+                )
+
             else:
+
                 st.caption("일반 알람")
 
         with col2:
@@ -349,7 +527,7 @@ def list_screen():
 
 
 # -------------------------
-# 알람 추가 화면
+# 알람 추가
 # -------------------------
 
 def add_screen():
@@ -394,11 +572,25 @@ def add_screen():
 
         st.markdown("### 문제 범위")
 
-        st.markdown("**고등학교 1학년 공통수학2**")
-
-        st.caption(
-            "도형의 방정식 · 집합과 명제 · 함수와 그래프"
+        scope = st.selectbox(
+            "고등학교 수학 과목 선택",
+            SCOPES,
+            index=1
         )
+
+        st.markdown("### 문제 난이도")
+
+        level = st.radio(
+            "난이도 선택",
+            LEVELS,
+            horizontal=True,
+            index=1
+        )
+
+    else:
+
+        scope = "공통수학2"
+        level = "중"
 
     st.write("")
 
@@ -425,7 +617,9 @@ def add_screen():
             "id": str(uuid.uuid4()),
             "target": target,
             "display": f"{period} {hour}시 {minute:02d}분",
-            "math": math_enabled
+            "math": math_enabled,
+            "scope": scope,
+            "level": level
         }
 
         st.session_state.alarms.append(alarm)
@@ -442,7 +636,7 @@ def add_screen():
 
 
 # -------------------------
-# 알람 실행 화면
+# 알람 실행
 # -------------------------
 
 def ringing_screen():
@@ -460,7 +654,6 @@ def ringing_screen():
         unsafe_allow_html=True
     )
 
-    # 반복 재생
     st.audio(
         make_alarm_sound(),
         format="audio/wav",
@@ -470,12 +663,17 @@ def ringing_screen():
 
     st.divider()
 
-    if alarm["math"]:
+    if alarm.get("math", False):
 
         problem = st.session_state.problem
 
         st.markdown(
-            "<h2 style='text-align:center'>공통수학2 문제</h2>",
+            f"<h3 style='text-align:center'>{problem['scope']} 문제</h3>",
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            f"<p style='text-align:center'>난이도: {problem['level']}</p>",
             unsafe_allow_html=True
         )
 
