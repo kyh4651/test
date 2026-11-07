@@ -7,9 +7,7 @@ import io
 import wave
 import math
 import struct
-
-from streamlit_autorefresh import st_autorefresh
-
+import time
 
 # ==========================================
 # 1. 기본 설정
@@ -70,30 +68,25 @@ def apply_design(dark=False):
         min-height: 45px;
         font-weight: 600;
     }}
-
-    div[data-testid="stToggle"] {{
-        accent-color: #FF8C00;
-    }}
-
     </style>
     """, unsafe_allow_html=True)
 
 
 # ==========================================
-# 3. 세션 상태
+# 3. 세션 상태 초기화
 # ==========================================
 
-if "page" not in st.session_state:
-    st.session_state.page = "list"
+defaults = {
+    "page": "list",
+    "alarms": [],
+    "active_alarm": None,
+    "notice": "",
+    "next_refresh": 0
+}
 
-if "alarms" not in st.session_state:
-    st.session_state.alarms = []
-
-if "active_alarm" not in st.session_state:
-    st.session_state.active_alarm = None
-
-if "notice" not in st.session_state:
-    st.session_state.notice = ""
+for key, value in defaults.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
 
 
 # ==========================================
@@ -171,17 +164,11 @@ def make_alarm_sound():
 
 
 # ==========================================
-# 6. 현재 시간 및 알람 확인
+# 6. 시간 및 알람 확인
 # ==========================================
-
-st_autorefresh(
-    interval=1000,
-    key="clock_refresh"
-)
 
 now = datetime.datetime.now()
 
-# 울려야 하는 알람 확인
 if st.session_state.active_alarm is None:
 
     due_alarms = [
@@ -199,6 +186,7 @@ if st.session_state.active_alarm is None:
         st.session_state.active_alarm = alarm["id"]
 
         if alarm["math"]:
+
             question, answer = generate_problem(
                 alarm["difficulty"]
             )
@@ -230,10 +218,11 @@ def alarm_list_screen():
     st.divider()
 
     if st.session_state.notice:
+
         st.success(st.session_state.notice)
         st.session_state.notice = ""
 
-    if len(st.session_state.alarms) == 0:
+    if not st.session_state.alarms:
 
         st.markdown(
             "<h3 style='text-align:center; color:#999999;'>"
@@ -251,13 +240,10 @@ def alarm_list_screen():
 
             with st.container(border=True):
 
-                hour = alarm["hour"]
-                minute = alarm["minute"]
-                period = alarm["period"]
-
                 st.markdown(
                     f"<h1 style='font-size:45px; margin:0;'>"
-                    f"{period} {hour:02d}:{minute:02d}"
+                    f"{alarm['period']} "
+                    f"{alarm['hour']:02d}:{alarm['minute']:02d}"
                     f"</h1>",
                     unsafe_allow_html=True
                 )
@@ -279,7 +265,6 @@ def alarm_add_screen():
     apply_design(True)
 
     st.markdown("# 알람 추가")
-
     st.divider()
 
     st.markdown("### 시간 설정")
@@ -303,8 +288,7 @@ def alarm_add_screen():
     with col2:
         minute = st.selectbox(
             "분",
-            list(range(0, 60)),
-            index=0,
+            list(range(60)),
             format_func=lambda x: f"{x:02d}"
         )
 
@@ -333,7 +317,6 @@ def alarm_add_screen():
 
     st.divider()
 
-    # 화면 아래 저장 버튼
     if st.button(
         "저장",
         use_container_width=True,
@@ -352,7 +335,6 @@ def alarm_add_screen():
             datetime.time(hour_24, minute)
         )
 
-        # 이미 지난 시간이면 다음 날로 설정
         if target <= current:
             target += datetime.timedelta(days=1)
 
@@ -373,10 +355,8 @@ def alarm_add_screen():
         st.session_state.page = "list"
         st.rerun()
 
-    if st.button(
-        "뒤로 가기",
-        use_container_width=True
-    ):
+    if st.button("뒤로 가기", use_container_width=True):
+
         st.session_state.page = "list"
         st.rerun()
 
@@ -400,6 +380,7 @@ def alarm_ring_screen():
     )
 
     if alarm is None:
+
         st.session_state.active_alarm = None
         st.session_state.page = "list"
         st.rerun()
@@ -426,7 +407,6 @@ def alarm_ring_screen():
         unsafe_allow_html=True
     )
 
-    # 알람 소리 반복 재생
     st.audio(
         make_alarm_sound(),
         format="audio/wav",
@@ -439,11 +419,9 @@ def alarm_ring_screen():
     if alarm["math"]:
 
         st.markdown(
-            """
-            <h2 style="text-align:center;">
-                수학 문제를 풀어주세요
-            </h2>
-            """,
+            "<h2 style='text-align:center;'>"
+            "수학 문제를 풀어주세요"
+            "</h2>",
             unsafe_allow_html=True
         )
 
@@ -455,7 +433,7 @@ def alarm_ring_screen():
                 margin:45px 0;
                 color:#111111;
             ">
-                {alarm["question"]} = ?
+                {alarm['question']} = ?
             </h1>
             """,
             unsafe_allow_html=True
@@ -519,7 +497,7 @@ def alarm_ring_screen():
 
 
 # ==========================================
-# 10. 화면 이동
+# 10. 화면 실행 및 자동 갱신
 # ==========================================
 
 if st.session_state.active_alarm is not None:
@@ -533,3 +511,9 @@ elif st.session_state.page == "add":
 
 elif st.session_state.page == "ring":
     alarm_ring_screen()
+
+# 알람이 설정되어 있으면 주기적으로 화면을 갱신
+if st.session_state.alarms:
+
+    time.sleep(1)
+    st.rerun()
