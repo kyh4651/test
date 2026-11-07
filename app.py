@@ -8,36 +8,46 @@ st.set_page_config(
     layout="wide"
 )
 
-# 검은색 배경 및 흰색 글씨
+# 디자인 설정
 st.markdown("""
 <style>
 .stApp {
-    background-color: #000000;
-    color: white;
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+}
+
+/* 버튼 글씨색 검정색 강제 적용 */
+.stButton > button,
+.stButton > button p,
+.stButton > button span,
+.stButton > button div {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    border: 2px solid #FFFFFF !important;
+    border-radius: 12px !important;
+    font-size: 20px !important;
+    font-weight: bold !important;
+}
+
+.stButton > button:hover {
+    background-color: #DDDDDD !important;
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+}
+
+.stButton > button:hover p,
+.stButton > button:hover span {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
 }
 
 h1, h2, p {
-    color: white !important;
-}
-
-.stButton button {
-    background-color: white !important;
-    color: black !important;
-    border: 2px solid white !important;
-    border-radius: 12px !important;
-    font-size: 22px !important;
-    font-weight: bold !important;
-    padding: 12px 30px !important;
-}
-
-.stButton button:hover {
-    background-color: #dddddd !important;
-    color: black !important;
+    color: #FFFFFF !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 세션 상태
 if "entered" not in st.session_state:
     st.session_state.entered = False
 
@@ -66,7 +76,7 @@ else:
     st.markdown("""
     <h1 style="
         text-align:center;
-        margin-top:60px;
+        margin-top:50px;
         color:white;
         font-size:48px;">
         환영합니다! 🎉
@@ -76,12 +86,18 @@ else:
     # 폭죽 효과
     st.balloons()
 
-    # 용 애니메이션
+    # 용과 독수리 애니메이션
     components.html("""
     <div class="scene">
+
         <div class="dragon">🐉</div>
+
         <div class="fire">🔥🔥🔥</div>
+
+        <div class="eagle">🦅</div>
+
         <div class="message">WELCOME!</div>
+
     </div>
 
     <style>
@@ -94,59 +110,37 @@ else:
     .scene {
         position: relative;
         width: 100%;
-        height: 420px;
+        height: 450px;
         background: black;
         overflow: hidden;
     }
 
+    /* 용 애니메이션 */
     .dragon {
         position: absolute;
-        font-size: 120px;
-        top: 100px;
+        font-size: 115px;
+        top: 70px;
         left: -180px;
         animation: dragonMove 5s ease-in-out forwards;
         z-index: 2;
     }
 
+    @keyframes dragonMove {
+        0% { left: -180px; }
+        30% { left: 35%; }
+        65% { left: 35%; }
+        100% { left: 120%; }
+    }
+
+    /* 불 뿜기 */
     .fire {
         position: absolute;
         font-size: 45px;
-        top: 170px;
+        top: 145px;
         left: 40%;
         opacity: 0;
         animation: fireBreath 5s ease-in-out forwards;
         z-index: 3;
-    }
-
-    .message {
-        position: absolute;
-        color: gold;
-        font-size: 35px;
-        font-weight: bold;
-        top: 300px;
-        width: 100%;
-        text-align: center;
-        opacity: 0;
-        animation: messageShow 5s ease forwards;
-    }
-
-    @keyframes dragonMove {
-        0% {
-            left: -180px;
-            transform: scaleX(1);
-        }
-        30% {
-            left: 35%;
-            transform: scaleX(1);
-        }
-        65% {
-            left: 35%;
-            transform: scaleX(1);
-        }
-        100% {
-            left: 120%;
-            transform: scaleX(1);
-        }
     }
 
     @keyframes fireBreath {
@@ -154,11 +148,7 @@ else:
             opacity: 0;
             transform: scale(0.2);
         }
-        40% {
-            opacity: 1;
-            transform: scale(1.5);
-        }
-        65% {
+        40%, 65% {
             opacity: 1;
             transform: scale(1.8);
         }
@@ -166,6 +156,58 @@ else:
             opacity: 0;
             transform: scale(0.2);
         }
+    }
+
+    /* 독수리 애니메이션 */
+    .eagle {
+        position: absolute;
+        font-size: 85px;
+        top: 220px;
+        left: -130px;
+        animation: eagleFly 6s linear 1s forwards;
+        z-index: 4;
+    }
+
+    @keyframes eagleFly {
+        0% {
+            left: -130px;
+            top: 250px;
+            transform: rotate(-10deg) scale(0.8);
+        }
+
+        25% {
+            top: 180px;
+            transform: rotate(5deg) scale(1);
+        }
+
+        50% {
+            top: 220px;
+            transform: rotate(-5deg) scale(1.1);
+        }
+
+        75% {
+            top: 130px;
+            transform: rotate(5deg) scale(1);
+        }
+
+        100% {
+            left: 120%;
+            top: 180px;
+            transform: rotate(0deg) scale(0.8);
+        }
+    }
+
+    /* 환영 메시지 */
+    .message {
+        position: absolute;
+        color: gold;
+        font-size: 35px;
+        font-weight: bold;
+        top: 350px;
+        width: 100%;
+        text-align: center;
+        opacity: 0;
+        animation: messageShow 5s ease forwards;
     }
 
     @keyframes messageShow {
@@ -181,12 +223,16 @@ else:
             opacity: 0;
         }
     }
+
     </style>
-    """, height=440)
+    """, height=470)
 
     st.markdown("""
-    <p style="text-align:center; color:gold; font-size:20px;">
-        🐉 전설의 용이 등장했습니다!
+    <p style="
+        text-align:center;
+        color:gold;
+        font-size:22px;">
+        🐉 용과 🦅 독수리가 환영합니다!
     </p>
     """, unsafe_allow_html=True)
 
